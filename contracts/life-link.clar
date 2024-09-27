@@ -6,6 +6,7 @@
 (define-constant err-already-registered (err u103))
 (define-constant err-invalid-data (err u104))
 (define-constant err-provider-limit-reached (err u105))
+(define-constant err-invalid-input (err u106))
 
 ;; Define data maps
 (define-map patients 
@@ -40,6 +41,23 @@
 ;; Define data variables
 (define-data-var patient-count uint u0)
 (define-data-var provider-count uint u0)
+
+;; Helper functions for input validation
+(define-private (is-valid-string (input (string-ascii 50)))
+  (and (>= (len input) u1) (<= (len input) u50))
+)
+
+(define-private (is-valid-license-number (input (string-ascii 20)))
+  (and (>= (len input) u5) (<= (len input) u20))
+)
+
+(define-private (is-valid-specialty (input (string-ascii 30)))
+  (and (>= (len input) u3) (<= (len input) u30))
+)
+
+(define-private (is-valid-access-level (input (string-ascii 20)))
+  (or (is-eq input "read") (is-eq input "write") (is-eq input "full"))
+)
 
 ;; Define public functions
 
@@ -94,6 +112,8 @@
     )
     (asserts! (is-some (map-get? provider-info provider)) err-provider-not-found)
     (asserts! (is-some patient-data) err-patient-not-found)
+    (asserts! (is-valid-access-level access-level) err-invalid-input)
+    (asserts! (> (len encryption-key) u0) err-invalid-input)
     (let
       (
         (current-data (unwrap-panic patient-data))
@@ -144,6 +164,9 @@
       (provider tx-sender)
     )
     (asserts! (is-none (map-get? provider-info provider)) err-already-registered)
+    (asserts! (is-valid-string name) err-invalid-input)
+    (asserts! (is-valid-license-number license-number) err-invalid-input)
+    (asserts! (is-valid-specialty specialty) err-invalid-input)
     (map-set provider-info provider {
       name: name,
       license-number: license-number,
