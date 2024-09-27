@@ -1,53 +1,61 @@
-# Clarity Language
-Clarity is a new language that brings smart contracts to Bitcoin. It is a decidable language, meaning you can know, with certainty, from the code itself what the program will do. Clarity is interpreted (not compiled) & the source code is published on the blockchain. Clarity gives developers a safe way to build complex smart contracts.
+# LifeLink - Healthcare Smart Contract
 
-## Using Clarity
-This repl already contains the complete setup so you do not need to install anything. You can access the REPL using `clarity-repl` & clarinet using `clarinet`.
+## Overview
 
-## Example: [hello-world](https://docs.hiro.so/tutorials/clarity-hello-world)
+This smart contract implements a secure and privacy-focused system for managing patient health records and provider access in a decentralized healthcare ecosystem. Built on the Stacks blockchain using Clarity, this contract enables patients to control their health data and grant time-limited access to healthcare providers.
 
-#### To generate a clarinet project called *hello-world*:
-```
-clarinet new hello-world
-```
-#### To generate a new clarity contract:
-```
-# first change directory to the project location
-cd hello-world/
-clarinet contract new hello-world
-```
-Let's add some clarity code to our **hello-world.clar** smart contract.
-```
-(define-public (say-hi)
-  (ok "hello world"))
+## Features
 
-(define-read-only (echo-number (val int))
-  (ok val))
-```
-### Run & Test Your Smart Contract
-In the **hello-world** folder, we have already setup a clarinet project using the commands above.
+- **Patient Registration**: Allows patients to register and store encrypted health data.
+- **Provider Registration**: Enables healthcare providers to register with their credentials.
+- **Secure Data Storage**: Patient data is stored in an encrypted format.
+- **Granular Access Control**: Patients can grant and revoke access to specific providers.
+- **Timed Access**: Implements time-limited access for providers, enhancing data privacy.
+- **Data Update Mechanism**: Patients can update their health records securely.
+- **Access Verification**: Providers can verify their access status before attempting to read patient data.
 
-#### To verify if syntax of the written smart contract is correct:
-```
-# first change directory to the project location
-cd hello-world/
-clarinet check
-``` 
-#### To launch a local console:
-```
-# first change directory to the project location
-cd hello-world/
-clarinet console
-```
-### Testing within `clarinet console`
-```
-# this should return (ok "Hello world")
->> (contract-call? .hello-world say-hi)
-# this should return (ok 42)
->> (contract-call? .hello-world echo-number 42)
-```
+## Smart Contract Functions
 
-## Documentation & Resources
-* Clarity Documentation: [docs.stacks.co/write-smart-contracts](https://docs.stacks.co/write-smart-contracts/overview)
-* Clarity Reference: [github.com/clarity-lang/reference](https://github.com/clarity-lang/reference)
-* More Resources: [clarity-lang.org/#started](https://clarity-lang.org/#started)
+### Public Functions
+
+1. `register-patient`: Register a new patient with encrypted data.
+2. `update-patient-data`: Update a patient's encrypted data.
+3. `grant-provider-access`: Grant time-limited access to a provider.
+4. `access-patient-data`: Allow a provider to access patient data.
+5. `register-provider`: Register a new healthcare provider.
+
+### Read-Only Functions
+
+1. `provider-has-access?`: Check if a provider has current access to a patient's data.
+2. `get-patient-providers`: Get a list of providers for a patient.
+3. `get-provider-info`: Retrieve information about a provider.
+4. `get-patient-data-hash`: Get the hash of a patient's data.
+5. `get-patient-count`: Get the total number of registered patients.
+6. `get-provider-count`: Get the total number of registered providers.
+7. `get-provider-access-details`: Get detailed access information for a provider.
+
+## Setup and Deployment
+
+1. Ensure you have the Stacks blockchain development environment set up.
+2. Clone this repository to your local machine.
+3. Deploy the smart contract to the Stacks blockchain using the appropriate deployment commands.
+
+## Usage
+
+After deployment, interact with the contract using a Stacks wallet or through API calls. Here are some example interactions:
+
+- Patients can register and update their data using `register-patient` and `update-patient-data`.
+- Providers can register using `register-provider`.
+- Patients can grant access to providers using `grant-provider-access`.
+- Providers can check and access patient data using `provider-has-access?` and `access-patient-data`.
+
+## Security Considerations
+
+- All patient data should be encrypted before being passed to the smart contract.
+- The contract uses principal-based authentication for all operations.
+- Access expiration is enforced to ensure data privacy over time.
+
+## Contributing
+
+Contributions to improve the smart contract are welcome. Please submit pull requests or open issues to discuss proposed changes.
+
