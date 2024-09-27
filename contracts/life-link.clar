@@ -7,6 +7,7 @@
 (define-constant err-invalid-data (err u104))
 (define-constant err-provider-limit-reached (err u105))
 (define-constant err-invalid-input (err u106))
+(define-constant err-access-expired (err u107))
 
 ;; Define data maps
 (define-map patients 
@@ -25,7 +26,8 @@
     access: bool,
     encryption-key: (buff 128),
     access-granted-at: uint,
-    access-level: (string-ascii 20)
+    access-level: (string-ascii 20),
+    access-expiration: uint
   }
 )
 
@@ -57,6 +59,11 @@
 
 (define-private (is-valid-access-level (input (string-ascii 20)))
   (or (is-eq input "read") (is-eq input "write") (is-eq input "full"))
+)
+
+;; Helper function to check if access has expired
+(define-private (is-access-expired (access-granted-at uint) (access-expiration uint))
+  (> block-height (+ access-granted-at access-expiration))
 )
 
 ;; Define public functions
@@ -103,8 +110,8 @@
   )
 )
 
-;; Function to grant access to a provider
-(define-public (grant-provider-access (provider principal) (encryption-key (buff 128)) (access-level (string-ascii 20)))
+;; Function to grant access to a provider with expiration
+(define-public (grant-provider-access (provider principal) (encryption-key (buff 128)) (access-level (string-ascii 20)) (access-duration uint))
   (let
     (
       (patient tx-sender)
@@ -114,6 +121,7 @@
     (asserts! (is-some patient-data) err-patient-not-found)
     (asserts! (is-valid-access-level access-level) err-invalid-input)
     (asserts! (> (len encryption-key) u0) err-invalid-input)
+    (asserts! (> access-duration u0) err-invalid-input)
     (let
       (
         (current-data (unwrap-panic patient-data))
@@ -125,7 +133,8 @@
           access: true, 
           encryption-key: encryption-key, 
           access-granted-at: block-height, 
-          access-level: access-level
+          access-level: access-level,
+          access-expiration: access-duration
         }
       )
       (ok (map-set patients patient 
@@ -145,12 +154,20 @@
       (access-data (map-get? provider-access {patient: patient, provider: provider}))
     )
     (match access-data
-      access-info (if (get access access-info)
+      access-info (if (and (get access access-info) 
+                           (not (is-access-expired 
+                                  (get access-granted-at access-info)
+                                  (get access-expiration access-info))))
         (ok {
           encryption-key: (get encryption-key access-info),
           access-level: (get access-level access-info)
         })
-        err-not-authorized
+        (if (is-access-expired 
+              (get access-granted-at access-info)
+              (get access-expiration access-info))
+          err-access-expired
+          err-not-authorized
+        )
       )
       err-provider-not-found
     )
@@ -182,7 +199,10 @@
 ;; Function to check if a provider has access to a patient's data
 (define-read-only (provider-has-access? (patient principal) (provider principal))
   (match (map-get? provider-access {patient: patient, provider: provider})
-    access-data (get access access-data)
+    access-data (and (get access access-data) 
+                     (not (is-access-expired 
+                            (get access-granted-at access-data)
+                            (get access-expiration access-data))))
     false
   )
 )
@@ -219,4 +239,18 @@
 ;; Function to get total provider count
 (define-read-only (get-provider-count)
   (ok (var-get provider-count))
+)
+
+;; Function to get provider access details
+(define-read-only (get-provider-access-details (patient principal) (provider principal))
+  (match (map-get? provider-access {patient: patient, provider: provider})
+    access-data (ok {
+      access: (get access access-data),
+      access-granted-at: (get access-granted-at access-data),
+      access-level: (get access-level access-data),
+      access-expiration: (get access-expiration access-data),
+      is-expired: (is-access-expired (get access-granted-at access-data) (get access-expiration access-data))
+    })
+    err-provider-not-found
+  )
 )
