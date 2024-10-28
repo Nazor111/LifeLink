@@ -66,7 +66,35 @@
   (> block-height (+ access-granted-at access-expiration))
 )
 
+;; Helper function to revoke all provider access for a patient
+(define-private (revoke-provider-access (provider principal) (patient principal))
+  (map-delete provider-access {patient: patient, provider: provider})
+)
+
 ;; Define public functions
+
+;; Function to delete patient data
+(define-public (delete-patient-data)
+  (let
+    (
+      (patient tx-sender)
+      (patient-data (map-get? patients patient))
+    )
+    (asserts! (is-some patient-data) err-patient-not-found)
+    (let
+      (
+        (current-providers (get providers (unwrap-panic patient-data)))
+      )
+      ;; Revoke access for all providers
+      (map revoke-provider-access current-providers (list patient))
+      ;; Delete patient record
+      (map-delete patients patient)
+      ;; Decrease patient count
+      (var-set patient-count (- (var-get patient-count) u1))
+      (ok true)
+    )
+  )
+)
 
 ;; Function to register a new patient
 (define-public (register-patient (encrypted-data (buff 1024)))
