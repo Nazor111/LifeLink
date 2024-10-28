@@ -1,10 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mocking Clarinet and Stacks blockchain environment
 const mockContractCall = vi.fn();
 const mockBlockHeight = vi.fn(() => 1000);
 
-// Replace with your actual function that simulates contract calls
 const clarity = {
   call: mockContractCall,
   getBlockHeight: mockBlockHeight,
@@ -12,88 +10,102 @@ const clarity = {
 
 describe('Physical Asset Authentication System', () => {
   beforeEach(() => {
-    vi.clearAllMocks(); // Clear mocks before each test
+    vi.clearAllMocks();
   });
-  
-  it('should allow a user to mint a new asset', async () => {
-    // Arrange
-    const userPrincipal = 'ST1USER...';
-    const metadata = 'Test Asset';
-    const location = 'Location A';
-    
-    // Mock minting logic
-    mockContractCall
-        .mockResolvedValueOnce({ ok: true, result: 1 }); // Simulating successful minting with asset ID 1
-    
-    // Act: Simulate minting the asset
-    const mintResult = await clarity.call('mint-asset', [metadata, location]);
-    
-    // Assert: Check if the asset was minted successfully
-    expect(mintResult.ok).toBe(true);
-    expect(mintResult.result).toBe(1); // Expect asset ID to be 1
+
+  it('should allow a user to register as a patient', async () => {
+    const encryptedData = 'Sample encrypted data';
+    mockContractCall.mockResolvedValueOnce({ ok: true });
+
+    const registerResult = await clarity.call('register-patient', [encryptedData]);
+
+    expect(registerResult.ok).toBe(true);
   });
-  
-  it('should allow the asset owner to update the asset location', async () => {
-    // Arrange
-    const assetId = 1;
-    const newLocation = 'Location B';
-    
-    // Mock updating logic
-    mockContractCall
-        .mockResolvedValueOnce({ ok: true }); // Simulating successful location update
-    
-    // Act: Simulate updating the asset location
-    const updateResult = await clarity.call('update-location', [assetId, newLocation]);
-    
-    // Assert: Check if the location was updated successfully
+
+  it('should allow a provider to register', async () => {
+    const providerInfo = {
+      name: 'Dr. Smith',
+      licenseNumber: '12345',
+      specialty: 'Cardiology'
+    };
+    mockContractCall.mockResolvedValueOnce({ ok: true });
+
+    const registerResult = await clarity.call('register-provider', [
+      providerInfo.name,
+      providerInfo.licenseNumber,
+      providerInfo.specialty,
+    ]);
+
+    expect(registerResult.ok).toBe(true);
+  });
+
+  it('should allow a patient to update their data', async () => {
+    const newEncryptedData = 'Updated encrypted data';
+    mockContractCall.mockResolvedValueOnce({ ok: true });
+
+    const updateResult = await clarity.call('update-patient-data', [newEncryptedData]);
+
     expect(updateResult.ok).toBe(true);
   });
-  
-  it('should allow the asset owner to list the asset for sale', async () => {
-    // Arrange
-    const assetId = 1;
-    const price = 1000;
-    
-    // Mock listing logic
-    mockContractCall
-        .mockResolvedValueOnce({ ok: true }); // Simulating successful asset listing
-    
-    // Act: Simulate listing the asset for sale
-    const listResult = await clarity.call('list-asset', [assetId, price]);
-    
-    // Assert: Check if the asset was listed successfully
-    expect(listResult.ok).toBe(true);
+
+  it('should allow a patient to grant access to a provider', async () => {
+    const provider = 'ST1PROVIDER...';
+    const encryptionKey = 'Key123';
+    const accessLevel = 'read';
+    const accessDuration = 1000;
+    mockContractCall.mockResolvedValueOnce({ ok: true });
+
+    const grantResult = await clarity.call('grant-provider-access', [
+      provider, encryptionKey, accessLevel, accessDuration
+    ]);
+
+    expect(grantResult.ok).toBe(true);
   });
-  
-  it('should throw an error when trying to update the location by a non-owner', async () => {
-    // Arrange
-    const assetId = 1;
-    const newLocation = 'Unauthorized Location';
-    
-    // Mock updating logic
-    mockContractCall
-        .mockResolvedValueOnce({ error: 'not authorized' }); // Simulating unauthorized access
-    
-    // Act: Simulate updating the asset location as a non-owner
-    const updateResult = await clarity.call('update-location', [assetId, newLocation]);
-    
-    // Assert: Check if the correct error is thrown
-    expect(updateResult.error).toBe('not authorized');
+
+  it('should allow a provider to access patient data if authorized', async () => {
+    const patient = 'ST1PATIENT...';
+    mockContractCall.mockResolvedValueOnce({
+      ok: true,
+      result: { encryptionKey: 'Key123', accessLevel: 'read' }
+    });
+
+    const accessResult = await clarity.call('access-patient-data', [patient]);
+
+    expect(accessResult.ok).toBe(true);
+    expect(accessResult.result.accessLevel).toBe('read');
   });
-  
-  it('should throw an error when trying to list an asset not owned by the user', async () => {
-    // Arrange
-    const assetId = 1;
-    const price = 1000;
-    
-    // Mock listing logic
-    mockContractCall
-        .mockResolvedValueOnce({ error: 'not authorized' }); // Simulating unauthorized access
-    
-    // Act: Simulate listing the asset for sale as a non-owner
-    const listResult = await clarity.call('list-asset', [assetId, price]);
-    
-    // Assert: Check if the correct error is thrown
-    expect(listResult.error).toBe('not authorized');
+
+  it('should prevent unauthorized provider from accessing patient data', async () => {
+    const patient = 'ST1PATIENT...';
+    mockContractCall.mockResolvedValueOnce({ error: 'not authorized' });
+
+    const accessResult = await clarity.call('access-patient-data', [patient]);
+
+    expect(accessResult.error).toBe('not authorized');
+  });
+
+  it('should allow a patient to delete their data', async () => {
+    mockContractCall.mockResolvedValueOnce({ ok: true });
+
+    const deleteResult = await clarity.call('delete-patient-data');
+
+    expect(deleteResult.ok).toBe(true);
+  });
+
+  it('should throw an error when trying to register a provider with invalid input', async () => {
+    const providerInfo = {
+      name: '', // Invalid name
+      licenseNumber: '123',
+      specialty: 'Ca'
+    };
+    mockContractCall.mockResolvedValueOnce({ error: 'invalid input' });
+
+    const registerResult = await clarity.call('register-provider', [
+      providerInfo.name,
+      providerInfo.licenseNumber,
+      providerInfo.specialty
+    ]);
+
+    expect(registerResult.error).toBe('invalid input');
   });
 });
